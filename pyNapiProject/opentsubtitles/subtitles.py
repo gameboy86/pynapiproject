@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*- 
-from xmlrpclib import ServerProxy
+import six
 import os
 import base64
+
+if six.PY3:
+    from xmlrpc.client import ServerProxy
+else:
+    from xmlrpclib import ServerProxy
 
 class StatusError(Exception): pass
 class NoSubtitlesError(Exception): pass
@@ -41,9 +46,9 @@ class ParseIncomingData:
             if self._is_find_subtitles():
                 return self.finded_subtitles
             else:
-                raise NoSubtitlesError, "Subtitles not found" 
+                raise NoSubtitlesError("Subtitles not found") 
         else:
-            raise StatusError, status
+            raise StatusError(status)
         
 class ParseSubtitlesToSend:
     def __init__(self, data):
@@ -65,15 +70,15 @@ class FileProperties:
             size = str(os.path.getsize(self.file_path))
             return size
         except OSError:
-            raise FileNotExistError, "No souch file {0}".format(self.file_path)
+            raise FileNotExistError("No souch file {0}".format(self.file_path))
     
     def get_file_hash(self):
-        from hash import hashFile
+        from .hash import hashFile
         try:
             hash = str(hashFile(self.file_path))
             return hash
         except IOError:
-            raise FileNotExistError, "No souch file {0}".format(self.file_path)
+            raise FileNotExistError("No souch file {0}".format(self.file_path))
         
 class SubtitlesConncector:
     RETURNED_OK_STATUS = '200 OK'
@@ -98,12 +103,12 @@ class SubtitlesConncector:
         if self._is_status_ok(status):
             return data['token']
         else:
-            raise StatusError, status
+            raise StatusError(status)
     
     def _save_zip(self, data_to_zip, path, file_name):
-        b64img = base64.b64decode(data_to_zip)
+        b64img = base64.b64decode(data_to_zip.encode('ascii'))
         b64imgfile = open(str(path + "/" + file_name + ".zip"), 'w')			
-        b64imgfile.write(b64img)
+        b64imgfile.write(str(b64img))
 
     def get_subtitles(self, subtitle, subtitles_dir = None):
         if not subtitles_dir:
@@ -114,7 +119,7 @@ class SubtitlesConncector:
         try:
             data = data['data'][0]['data']
         except Exception:
-            raise GetSubtitlesError, "Error: cant get data"     
+            raise GetSubtitlesError("Error: cant get data")     
         self._save_zip(data, subtitles_dir, subtitle.subfilename)
     
     def search_subtitles(self, subtitles):

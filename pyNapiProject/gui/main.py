@@ -1,6 +1,6 @@
 from gi.repository import Gtk, GObject
-from subtitles_list import SubtitlesTreeView
-from errordialog import ErrorDialog
+from .subtitles_list import SubtitlesTreeView
+from .errordialog import ErrorDialog
 from opentsubtitles.subtitles import FileProperties, SubtitlesSearchProperties, SubtitlesConncector,\
     NoSubtitlesError, FileNotExistError
 
@@ -77,7 +77,7 @@ class MainWidnows(Gtk.Window):
             file_size = f.get_file_size()
             file_hash = f.get_file_hash()
             subtitles = SubtitlesSearchProperties(moviebytesize = file_size, moviehash = file_hash)
-        except FileNotExistError, e:
+        except FileNotExistError as e:
             self.error_dialog = ErrorDialog(self)
             self.error_dialog.show_error_dialog(e.args[0])
             self.status_bar.push(self.context_id, "Find: 0 subtitles")
@@ -86,7 +86,7 @@ class MainWidnows(Gtk.Window):
             self.subtitles = self.subtitle_connector.search_subtitles(subtitles)
             self.treeview.display_subtitles(self.subtitles)
             self.status_bar.push(self.context_id, "Find: {0} subtitles".format(len(self.subtitles)))
-        except NoSubtitlesError, e:
+        except NoSubtitlesError as e:
             self.treeview.liststore.clear()
             self.error_dialog = ErrorDialog(self)
             self.error_dialog.show_error_dialog(e.args[0])
