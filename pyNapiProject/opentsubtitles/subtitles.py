@@ -101,7 +101,7 @@ class SubtitlesConncector:
             raise StatusError, status
     
     def _save_zip(self, data_to_zip, path, file_name):
-        b64img = base64.b64decode(data)
+        b64img = base64.b64decode(data_to_zip)
         b64imgfile = open(str(path + "/" + file_name + ".zip"), 'w')			
         b64imgfile.write(b64img)
 
