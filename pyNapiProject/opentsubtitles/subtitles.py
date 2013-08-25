@@ -6,6 +6,7 @@ import base64
 class StatusError(Exception): pass
 class NoSubtitlesError(Exception): pass
 class FileNotExistError(OSError): pass
+class GetSubtitlesError(Exception): pass
 
 class StatusParsser:
     def __init__(self, data):
@@ -99,32 +100,31 @@ class SubtitlesConncector:
         else:
             raise StatusError, status
     
-    def get_subtitles(self, subtitle):
-        home_path = os.path.expanduser("~")
-        full_path = home_path+"/subtitles"
-        if not os.path.exists(full_path):
-            print "tworze folder {0}".format(full_path)
-            os.makedirs(full_path)
-        array_to_send = []
-        array_to_send.append(subtitle.idsubtitlefile)
-        data = self.proxy_server.DownloadSubtitles(self.token, array_to_send)
-        data = data['data'][0]['data']
+    def _save_zip(self, data_to_zip, path, file_name):
         b64img = base64.b64decode(data)
-        all = full_path+"/" + subtitle.subfilename + ".zip"
-        b64imgfile = open(str(all), 'w')
+        b64imgfile = open(str(path + "/" + file_name + ".zip"), 'w')			
         b64imgfile.write(b64img)
-        print data
+
+    def get_subtitles(self, subtitle, subtitles_dir = None):
+        if not subtitles_dir:
+            subtitles_dir = os.path.expanduser("~") + "/subtitles"	 
+        if not os.path.exists(subtitles_dir):
+            os.makedirs(subtitles_dir)
+        data = self.proxy_server.DownloadSubtitles(self.token, [subtitle.idsubtitlefile])
+        try:
+            data = data['data'][0]['data']
+        except Exception:
+            raise GetSubtitlesError, "Error: cant get data"     
+        self._save_zip(data, subtitles_dir, subtitle.subfilename)
     
     def search_subtitles(self, subtitles):
         parsed_data_to_send = ParseSubtitlesToSend(subtitles).parse()
-        array_to_send =[]
-        array_to_send.append(parsed_data_to_send)
-        data = self.proxy_server.SearchSubtitles(self.token, array_to_send)
+        data = self.proxy_server.SearchSubtitles(self.token, [parsed_data_to_send])
         data = ParseIncomingData(data).parse()
-        c = SubtitlesFindedCollection()
-        for a in data:
-            c.append(SubtitlesFindedProperties(sublangid = a['SubLanguageID'], subfilename = a['SubFileName'], idsubtitlefile = a['IDSubtitleFile']))
-        return c
+        collect = SubtitlesFindedCollection()
+        for d in data:
+            collect.append(SubtitlesFindedProperties(sublangid = d['SubLanguageID'], subfilename = d['SubFileName'], idsubtitlefile = d['IDSubtitleFile']))
+        return collect
 
 class SubtitlesFindedCollection(list):
     def __init__(self, **args):
@@ -156,20 +156,4 @@ class SubtitlesSearchProperties:
         
     def __str__(self):
         return "<{0}>".format(self.moviehash)
-        
-        
-if __name__ == "__main__":
-    try:
-        test = SubtitlesConncector(user_name = '', password = '')
-    except StatusError as e:
-        print e
-    
-    f = FileProperties("/home/gameboy/Pobrane/pygame-1.9.1release/The.Hobbit.An.Unexpected.Journey.2012.720p.BluRay.x264-SPARKS/The.Hobbit.An.Unexpected.Journey.2012.720p.BluRay.x264-SPARKS.mkv").get_file_hash()
-    z = FileProperties("/home/gameboy/Pobrane/pygame-1.9.1release/The.Hobbit.An.Unexpected.Journey.2012.720p.BluRay.x264-SPARKS/The.Hobbit.An.Unexpected.Journey.2012.720p.BluRay.x264-SPARKS.mkv").get_file_size()
-
-    subtitles = SubtitlesSearchProperties(moviebytesize = z, moviehash = f)
-    data = test.search_subtitles(subtitles)
-    print data
-    for a in data['data']:
-        print a
         
